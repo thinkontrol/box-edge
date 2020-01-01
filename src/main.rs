@@ -1,3 +1,6 @@
+mod plc_driver;
+
+extern crate bit_vec;
 extern crate chrono;
 extern crate clap;
 extern crate env_logger;
@@ -7,124 +10,20 @@ extern crate regex;
 extern crate snap7_sys;
 
 use chrono::Local;
-use clap::{App, Arg};
 use env_logger::Builder;
 use futures::future::{ok, Either};
 use futures::{Future, Stream};
 use log::{error, info, warn, LevelFilter};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 use std::io::Write;
 use std::time::Duration;
 use std::{env, process};
 
-use snap7_sys::*;
-use std::ffi::CString;
-use std::os::raw::{c_char, c_int, c_void};
+use bit_vec::BitVec;
 
-#[derive(Debug)]
-struct Client {
-    handle: S7Object,
-    req_len: usize,
-    neg_len: usize,
-}
-
-impl Client {
-    pub fn new() -> Self {
-        Self {
-            handle: unsafe { Cli_Create() },
-            req_len: 0,
-            neg_len: 0,
-        }
-    }
-
-    pub fn connect(&mut self) {
-        let mut req: c_int = 0;
-        let mut neg: c_int = 0;
-
-        unsafe {
-            Cli_ConnectTo(
-                self.handle,
-                CString::new("10.0.0.230").unwrap().as_ptr(),
-                0,
-                1,
-            );
-
-            Cli_GetPduLength(self.handle, &mut req, &mut neg);
-
-            self.req_len = req as usize;
-            self.neg_len = neg as usize;
-
-            info!("Get PDU: {}, {}", self.req_len, self.neg_len)
-        }
-    }
-
-    pub fn read(&self, num: u32, start: u32, size: u32) -> Result<Vec<u8>, String> {
-        let mut buf = Vec::<u8>::new();
-
-        buf.resize(size as usize, 0);
-
-        let res;
-        unsafe {
-            res = Cli_DBRead(
-                self.handle,
-                num as c_int,
-                start as c_int,
-                size as c_int,
-                buf.as_mut_ptr() as *mut c_void,
-            ) as i32;
-        }
-
-        if res == 0 {
-            Ok(buf)
-        } else {
-            Err(String::from(error_text(res)))
-        }
-    }
-
-    pub fn close(&mut self) {
-        unsafe {
-            Cli_Disconnect(self.handle);
-        }
-    }
-}
-
-impl Drop for Client {
-    fn drop(&mut self) {
-        self.close();
-
-        unsafe {
-            Cli_Destroy(&mut self.handle);
-        }
-    }
-}
-
-pub fn error_text(code: i32) -> String {
-    let mut err = Vec::<u8>::new();
-
-    err.resize(1024, 0);
-
-    unsafe {
-        Cli_ErrorText(
-            code as c_int,
-            err.as_mut_ptr() as *mut c_char,
-            err.len() as c_int,
-        );
-    }
-
-    if let Some(i) = err.iter().position(|&r| r == 0) {
-        err.truncate(i);
-    }
-
-    let err = unsafe { std::str::from_utf8_unchecked(&err) };
-
-    err.to_owned()
-}
-
-struct CtlRecord {
-    plc_counter: u64,
-    ctl_counter: u64,
-}
+use plc_driver::s7::Client;
 
 fn main() {
     // Initialize the logger from the environment
@@ -146,18 +45,56 @@ fn main() {
 
     let mut client = Client::new();
 
-    client.connect();
+    client.connect("10.0.0.230", 0, 1);
 
     warn!("{:#?}", client);
 
-    loop {
-        info!("{:#?}", client.read(2, 0, 20));
-        // if let Ok(result) = client.read(1, 0, 20) {
-        //     let num = u32::from_
-        // }
-        let buf = [0, 64];
-        let num = u16::from_be_bytes(buf);
-        info!("{}", num);
-        std::thread::sleep(std::time::Duration::from_secs(1));
-    }
+    let buf = client.read(2, 0, 16).unwrap();
+
+    let (int_bytes, rest) = buf.split_at(std::mem::size_of::<i16>());
+
+    let a = i16::from_be_bytes(buf[0..2].try_into().unwrap());
+    info!("{:#?}, {:#?}", a, int_bytes);
+
+    let (int_bytes, rest) = rest.split_at(std::mem::size_of::<i16>());
+    let a = i16::from_be_bytes(buf[2..4].try_into().unwrap());
+    info!("{:#?}, {:#?}", a, int_bytes);
+
+    let (int_bytes, rest) = rest.split_at(std::mem::size_of::<f32>());
+    let a = f32::from_bits(u32::from_be_bytes(buf[4..8].try_into().unwrap()));
+    info!("{:#?}, {:#?}", a, buf[8]);
+
+    info!("{:#?}", rest);
+
+    let bv = BitVec::from_bytes(&buf[8..9]);
+    info!("{:#?}", bv.get(0));
+    info!("{:#?}", bv.get(1));
+    info!("{:#?}", bv.get(2));
+    info!("{:#?}", bv.get(3));
+    info!("{:#?}", bv.get(4));
+    info!("{:#?}", bv.get(5));
+    info!("{:#?}", bv.get(6));
+    info!("{:#?}", bv.get(7));
+
+    let bv = BitVec::from_bytes(&buf[9..10]);
+    info!("{:#?}", bv.get(0));
+    info!("{:#?}", bv.get(1));
+    info!("{:#?}", bv.get(2));
+    info!("{:#?}", bv.get(3));
+    info!("{:#?}", bv.get(4));
+    info!("{:#?}", bv.get(5));
+    info!("{:#?}", bv.get(6));
+    info!("{:#?}", bv.get(7));
+    info!("{:#?}", bv.get(8));
+
+    // loop {
+    //     info!("{:#?}", client.read(2, 0, 20));
+    //     // if let Ok(result) = client.read(1, 0, 20) {
+    //     //     let num = u32::from_
+    //     // }
+    //     let buf = [0, 20];
+    //     let num = u16::from_be_bytes(buf);
+    //     info!("{}", num);
+    //     std::thread::sleep(std::time::Duration::from_secs(1));
+    // }
 }
