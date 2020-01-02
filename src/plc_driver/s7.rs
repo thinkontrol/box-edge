@@ -158,7 +158,7 @@ impl ETagRW for Client {
                         addr.area as c_int,
                         addr.dbnb as c_int,
                         addr.start as c_int,
-                        addr.start as c_int,
+                        addr.size as c_int,
                         S7WL::S7WLByte as c_int,
                         buf.as_mut_ptr() as *mut c_void,
                     ) as i32;
