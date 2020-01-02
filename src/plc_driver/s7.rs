@@ -1,4 +1,4 @@
-use super::{ETag, ETagRW, ETagValue};
+use super::{ETag, ETagRW, ETagValue, ETagtype};
 use bit_vec::BitVec;
 use log::{error, info, warn, LevelFilter};
 use regex::Regex;
@@ -12,6 +12,29 @@ pub struct Client {
     req_len: usize,
     neg_len: usize,
     reg: regex::Regex,
+}
+
+pub enum S7Area {
+    PE = 0x81,
+    PA = 0x82,
+    MK = 0x83,
+    DB = 0x84,
+}
+
+pub enum S7WL {
+    S7WLBit     = 0x01,
+    S7WLByte    = 0x02,
+    S7WLWord    = 0x04,
+    S7WLDWord   = 0x06,
+    S7WLReal    = 0x08,
+}
+
+pub struct S7Address {
+    area: S7Area,
+    dbnb: u8,
+    bit: u8,
+    start: u8,
+    size: u8,
 }
 
 impl Client {
@@ -41,7 +64,8 @@ impl Client {
             self.req_len = req as usize;
             self.neg_len = neg as usize;
 
-            info!("Get PDU: {}, {}", self.req_len, self.neg_len)
+            info!("Get PDU: {}, {}", self.req_len, self.neg_len);
+
         }
     }
 
@@ -73,6 +97,42 @@ impl Client {
             Cli_Disconnect(self.handle);
         }
     }
+
+    pub fn cov_address(&self, address: &str, datatype: &ETagtype) -> Result<S7Address, String> {
+        if let Some(r) = &self.reg.captures(address) {
+            let area: S7Area = match r.get(1).unwrap().as_str() {
+                "M" => S7Area::MK,
+                "I" => S7Area::PE,
+                "Q" => S7Area::PA,
+                _ => S7Area::DB,
+            };
+            let dbnb: u8 = match area {
+                S7Area::DB => r.get(2).unwrap().as_str().parse().unwrap(),
+                _ => 0,
+            };
+            let dd = r.get(3).unwrap().as_str();
+            let size: u8 = match dd {
+                "W" => 2,
+                "D" => 4,
+                _ => 1,
+            };
+            let start: u8 = r.get(4).unwrap().as_str().parse().unwrap();
+            let bit: u8 = if r.get(5).is_none() {
+                0
+            } else {
+                r.get(5).unwrap().as_str().parse().unwrap()
+            };
+            let addr = S7Address {area,dbnb,size,start,bit};
+            match datatype {
+                ETagtype::BOOL if dd == "X" => Ok(addr),
+                ETagtype::INT if dd == "W" => Ok(addr),
+                _ if dd == "D" => Ok(addr),
+                _ => Err(String::from("Invalid S7 addree")),
+            }
+        } else {
+            Err(String::from("Invalid S7 addree"))
+        }
+    }
 }
 
 impl Drop for Client {
@@ -86,12 +146,41 @@ impl Drop for Client {
 }
 
 impl ETagRW for Client {
-    fn read_tag(&self, tag: &mut ETag) -> Result<ETagValue, String> {
-        Err(String::from("test"))
+    fn read_tag(&self, tag: &mut ETag) -> Result<bool, String> {
+        match self.cov_address(tag.address.as_str(), &tag.datatype) {
+            Ok(addr) => {
+                let mut buf = Vec::<u8>::new();
+                buf.resize(addr.size as usize, 0);
+                let res;
+                unsafe{
+                    res = Cli_ReadArea(
+                        self.handle,
+                        addr.area as c_int,
+                        addr.dbnb as c_int,
+                        addr.start as c_int,
+                        addr.start as c_int,
+                        S7WL::S7WLByte as c_int,
+                        buf.as_mut_ptr() as *mut c_void,
+                    ) as i32;
+                }
+
+                if res == 0 {
+                    Ok(true)
+                } else {
+                    Err(String::from(error_text(res)))
+                }
+            },
+            Err(err) => Err(err),
+        }
     }
-    fn read_list(&self, tags: &mut &[ETag]) {}
+    fn read_list(&self, tags: &mut &[ETag]) -> Result<bool, String> {
+        Ok(true)
+    }
     fn write_tag(&self, tag: &mut ETag) -> Result<bool, String> {
-        Err(String::from("test"))
+        Ok(true)
+    }
+    fn write_list(&self, tag: &mut &[ETag]) -> Result<bool, String> {
+        Ok(true)
     }
 }
 
