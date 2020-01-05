@@ -24,6 +24,7 @@ use std::{env, process};
 use bit_vec::BitVec;
 
 use plc_driver::s7::Client;
+use plc_driver::{ETag, ETagRW, ETagValue, ETagtype};
 
 fn main() {
     // Initialize the logger from the environment
@@ -86,6 +87,158 @@ fn main() {
     info!("{:#?}", bv.get(6));
     info!("{:#?}", bv.get(7));
     info!("{:#?}", bv.get(8));
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2W2"),
+        datatype: ETagtype::INT,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!("{:#?}", &tag_for_read.read.unwrap()),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2D4"),
+        datatype: ETagtype::REAL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!("{:#?}", &tag_for_read.read.unwrap()),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2X9.0"),
+        datatype: ETagtype::BOOL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!(
+            "{:#?}: {:#?}",
+            &tag_for_read.address,
+            &tag_for_read.read.unwrap()
+        ),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2X9.1"),
+        datatype: ETagtype::BOOL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!(
+            "{:#?}: {:#?}",
+            &tag_for_read.address,
+            &tag_for_read.read.unwrap()
+        ),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2X9.2"),
+        datatype: ETagtype::BOOL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!(
+            "{:#?}: {:#?}",
+            &tag_for_read.address,
+            &tag_for_read.read.unwrap()
+        ),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2X9.3"),
+        datatype: ETagtype::BOOL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!(
+            "{:#?}: {:#?}",
+            &tag_for_read.address,
+            &tag_for_read.read.unwrap()
+        ),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2X9.4"),
+        datatype: ETagtype::BOOL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!(
+            "{:#?}: {:#?}",
+            &tag_for_read.address,
+            &tag_for_read.read.unwrap()
+        ),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2X9.5"),
+        datatype: ETagtype::BOOL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!(
+            "{:#?}: {:#?}",
+            &tag_for_read.address,
+            &tag_for_read.read.unwrap()
+        ),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2X9.6"),
+        datatype: ETagtype::BOOL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!(
+            "{:#?}: {:#?}",
+            &tag_for_read.address,
+            &tag_for_read.read.unwrap()
+        ),
+        Err(msg) => error!("{:#?}", msg),
+    }
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2X9.7"),
+        datatype: ETagtype::BOOL,
+        read: Err(String::from("")),
+        write: None,
+    };
+    match client.read_tag(&mut tag_for_read) {
+        Ok(_) => info!(
+            "{:#?}: {:#?}",
+            &tag_for_read.address,
+            &tag_for_read.read.unwrap()
+        ),
+        Err(msg) => error!("{:#?}", msg),
+    }
 
     // loop {
     //     info!("{:#?}", client.read(2, 0, 20));

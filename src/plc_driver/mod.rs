@@ -23,11 +23,11 @@ pub enum ETagValue {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ETag {
-    name: String,
-    address: String,
-    datatype: ETagtype,
-    read: Result<ETagValue, String>,
-    write: Option<ETagValue>,
+    pub name: String,
+    pub address: String,
+    pub datatype: ETagtype,
+    pub read: Result<ETagValue, String>,
+    pub write: Option<ETagValue>,
 }
 
 pub trait ETagRW {

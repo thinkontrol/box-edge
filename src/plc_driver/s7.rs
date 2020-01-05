@@ -3,6 +3,7 @@ use bit_vec::BitVec;
 use log::{error, info, warn, LevelFilter};
 use regex::Regex;
 use snap7_sys::*;
+use std::convert::TryInto;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
 
@@ -14,6 +15,7 @@ pub struct Client {
     reg: regex::Regex,
 }
 
+#[derive(Debug)]
 pub enum S7Area {
     PE = 0x81,
     PA = 0x82,
@@ -21,14 +23,16 @@ pub enum S7Area {
     DB = 0x84,
 }
 
+#[derive(Debug)]
 pub enum S7WL {
-    S7WLBit     = 0x01,
-    S7WLByte    = 0x02,
-    S7WLWord    = 0x04,
-    S7WLDWord   = 0x06,
-    S7WLReal    = 0x08,
+    S7WLBit = 0x01,
+    S7WLByte = 0x02,
+    S7WLWord = 0x04,
+    S7WLDWord = 0x06,
+    S7WLReal = 0x08,
 }
 
+#[derive(Debug)]
 pub struct S7Address {
     area: S7Area,
     dbnb: u8,
@@ -65,7 +69,6 @@ impl Client {
             self.neg_len = neg as usize;
 
             info!("Get PDU: {}, {}", self.req_len, self.neg_len);
-
         }
     }
 
@@ -122,7 +125,13 @@ impl Client {
             } else {
                 r.get(5).unwrap().as_str().parse().unwrap()
             };
-            let addr = S7Address {area,dbnb,size,start,bit};
+            let addr = S7Address {
+                area,
+                dbnb,
+                size,
+                start,
+                bit,
+            };
             match datatype {
                 ETagtype::BOOL if dd == "X" => Ok(addr),
                 ETagtype::INT if dd == "W" => Ok(addr),
@@ -152,7 +161,7 @@ impl ETagRW for Client {
                 let mut buf = Vec::<u8>::new();
                 buf.resize(addr.size as usize, 0);
                 let res;
-                unsafe{
+                unsafe {
                     res = Cli_ReadArea(
                         self.handle,
                         addr.area as c_int,
@@ -165,11 +174,32 @@ impl ETagRW for Client {
                 }
 
                 if res == 0 {
+                    match tag.datatype {
+                        ETagtype::INT => {
+                            tag.read = Ok(ETagValue::Int(i16::from_be_bytes(
+                                buf[0..2].try_into().unwrap(),
+                            ) as i64));
+                        }
+                        ETagtype::DINT => {
+                            tag.read = Ok(ETagValue::Int(i32::from_be_bytes(
+                                buf[0..4].try_into().unwrap(),
+                            ) as i64));
+                        }
+                        ETagtype::REAL => {
+                            tag.read = Ok(ETagValue::Real(f32::from_bits(u32::from_be_bytes(
+                                buf[0..4].try_into().unwrap(),
+                            )) as f64));
+                        }
+                        ETagtype::BOOL => {
+                            let bv = BitVec::from_bytes(&buf);
+                            tag.read = Ok(ETagValue::Bool(bv.get((7 - addr.bit) as usize).unwrap()))
+                        }
+                    }
                     Ok(true)
                 } else {
                     Err(String::from(error_text(res)))
                 }
-            },
+            }
             Err(err) => Err(err),
         }
     }
