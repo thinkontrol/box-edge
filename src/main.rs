@@ -50,195 +50,87 @@ fn main() {
 
     warn!("{:#?}", client);
 
-    let buf = client.read(2, 0, 16).unwrap();
-
-    let (int_bytes, rest) = buf.split_at(std::mem::size_of::<i16>());
-
-    let a = i16::from_be_bytes(buf[0..2].try_into().unwrap());
-    info!("{:#?}, {:#?}", a, int_bytes);
-
-    let (int_bytes, rest) = rest.split_at(std::mem::size_of::<i16>());
-    let a = i16::from_be_bytes(buf[2..4].try_into().unwrap());
-    info!("{:#?}, {:#?}", a, int_bytes);
-
-    let (int_bytes, rest) = rest.split_at(std::mem::size_of::<f32>());
-    let a = f32::from_bits(u32::from_be_bytes(buf[4..8].try_into().unwrap()));
-    info!("{:#?}, {:#?}", a, buf[8]);
-
-    info!("{:#?}", rest);
-
-    let bv = BitVec::from_bytes(&buf[8..9]);
-    info!("{:#?}", bv.get(0));
-    info!("{:#?}", bv.get(1));
-    info!("{:#?}", bv.get(2));
-    info!("{:#?}", bv.get(3));
-    info!("{:#?}", bv.get(4));
-    info!("{:#?}", bv.get(5));
-    info!("{:#?}", bv.get(6));
-    info!("{:#?}", bv.get(7));
-
-    let bv = BitVec::from_bytes(&buf[9..10]);
-    info!("{:#?}", bv.get(0));
-    info!("{:#?}", bv.get(1));
-    info!("{:#?}", bv.get(2));
-    info!("{:#?}", bv.get(3));
-    info!("{:#?}", bv.get(4));
-    info!("{:#?}", bv.get(5));
-    info!("{:#?}", bv.get(6));
-    info!("{:#?}", bv.get(7));
-    info!("{:#?}", bv.get(8));
-
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2W2"),
         datatype: ETagtype::INT,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!("{:#?}", &tag_for_read.read.unwrap()),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    client.write_tag(&mut tag_for_read, ETagValue::Int(8712));
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2D4"),
         datatype: ETagtype::REAL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!("{:#?}", &tag_for_read.read.unwrap()),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    client.write_tag(&mut tag_for_read, ETagValue::Real(565.25));
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2X9.0"),
         datatype: ETagtype::BOOL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!(
-            "{:#?}: {:#?}",
-            &tag_for_read.address,
-            &tag_for_read.read.unwrap()
-        ),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2X9.1"),
         datatype: ETagtype::BOOL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!(
-            "{:#?}: {:#?}",
-            &tag_for_read.address,
-            &tag_for_read.read.unwrap()
-        ),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    client.write_tag(&mut tag_for_read, ETagValue::Bool(true));
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2X9.2"),
         datatype: ETagtype::BOOL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!(
-            "{:#?}: {:#?}",
-            &tag_for_read.address,
-            &tag_for_read.read.unwrap()
-        ),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2X9.3"),
         datatype: ETagtype::BOOL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!(
-            "{:#?}: {:#?}",
-            &tag_for_read.address,
-            &tag_for_read.read.unwrap()
-        ),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2X9.4"),
         datatype: ETagtype::BOOL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!(
-            "{:#?}: {:#?}",
-            &tag_for_read.address,
-            &tag_for_read.read.unwrap()
-        ),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2X9.5"),
         datatype: ETagtype::BOOL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!(
-            "{:#?}: {:#?}",
-            &tag_for_read.address,
-            &tag_for_read.read.unwrap()
-        ),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    client.write_tag(&mut tag_for_read, ETagValue::Bool(false));
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2X9.6"),
         datatype: ETagtype::BOOL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!(
-            "{:#?}: {:#?}",
-            &tag_for_read.address,
-            &tag_for_read.read.unwrap()
-        ),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let mut tag_for_read = ETag {
         name: String::from("test"),
         address: String::from("DB2X9.7"),
         datatype: ETagtype::BOOL,
-        read: Err(String::from("")),
-        write: None,
     };
-    match client.read_tag(&mut tag_for_read) {
-        Ok(_) => info!(
-            "{:#?}: {:#?}",
-            &tag_for_read.address,
-            &tag_for_read.read.unwrap()
-        ),
-        Err(msg) => error!("{:#?}", msg),
-    }
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
+
+    let mut tag_for_read = ETag {
+        name: String::from("test"),
+        address: String::from("DB2D10"),
+        datatype: ETagtype::DINT,
+    };
+    client.write_tag(&mut tag_for_read, ETagValue::Int(5842651));
+    info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     // loop {
     //     info!("{:#?}", client.read(2, 0, 20));
