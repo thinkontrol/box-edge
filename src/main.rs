@@ -8,6 +8,7 @@ extern crate futures;
 extern crate log;
 extern crate regex;
 extern crate snap7_sys;
+extern crate itertools;
 
 use chrono::Local;
 use env_logger::Builder;
@@ -131,6 +132,30 @@ fn main() {
     };
     client.write_tag(&mut tag_for_read, ETagValue::Int(5842651));
     info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
+
+    let tags = vec![
+        ETag {
+            name: String::from("test"),
+            address: String::from("DB2W0"),
+            datatype: ETagtype::INT,
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("DB2W2"),
+            datatype: ETagtype::INT,
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("DB2D4"),
+            datatype: ETagtype::REAL,
+        }
+    ];
+
+    let results = client.read_list(&tags).unwrap();
+    for r in results {
+        info!("{:#?}", r)
+    }
+
 
     // loop {
     //     info!("{:#?}", client.read(2, 0, 20));
