@@ -352,22 +352,23 @@ impl ETagRW for Client {
         }
     }
     fn write_list(&self, tags: &Vec::<(ETag, ETagValue)>) -> Result<Vec::<Result<bool, String>>, String> {
-        let addrs:Vec::<_> = tags.iter().map(|t| self.conv_address(t.0.address.as_str(), t.0.datatype)).collect();
+        let addrs: Vec::<_> = tags.iter().map(|t| self.conv_address(t.0.address.as_str(), t.0.datatype)).collect();
         if addrs.iter().any(|addr| addr.is_err()) {
             Err(String::from("Address error"))
         } else {
-            let items: Vec::<_> = addrs.iter().enumerate().map(|(i, addr)| {
-                let addr_ = addr.as_ref().unwrap();
+            let addrs: Vec::<_> = tags.iter().map(|t| self.conv_address(t.0.address.as_str(), t.0.datatype).unwrap()).collect();
+            let mut items: Vec::<_> = addrs.iter().enumerate().map(|(i, addr)| {
                 let mut buf_ = Vec::<u8>::new();
-                buf_.resize(addr_.size as usize, 0);
-                let mut buf = self.conv_buf(tags[i].1, addr_, false).unwrap_or(buf_);
-                (self.get_s7data_item(addr_, &mut buf), buf, addr_, tags[i].1)
+                buf_.resize(addr.size as usize, 0);
+                let mut buf = self.conv_buf(tags[i].1, addr, false).unwrap_or(buf_);
+                (self.get_s7data_item(addr, &mut buf), buf)
             }).collect();
-            for (area_key, area_group) in &items.iter().filter(|t| t.2.datatype.is_bool())
-                .sorted_by(|a, b| Ord::cmp(a.2, b.2))
-                .group_by(|t| t.2.area) {
-                    for (dbnb_key, dbnb_group) in &area_group.into_iter().group_by(|t| t.2.dbnb) {
-                        for (start_key, start_group) in &dbnb_group.into_iter().group_by(|t| t.2.start) {
+            let addrs: Vec::<_> = tags.iter().map(|t| self.conv_address(t.0.address.as_str(), t.0.datatype).unwrap()).collect();
+            for (area_key, area_group) in &addrs.iter().filter(|addr| addr.datatype.is_bool())
+                .sorted_by(|a, b| Ord::cmp(a, b))
+                .group_by(|t| t.area) {
+                    for (dbnb_key, dbnb_group) in &area_group.into_iter().group_by(|t| t.dbnb) {
+                        for (start_key, start_group) in &dbnb_group.into_iter().group_by(|t| t.start) {
                             let mut buf = Vec::<u8>::new();
                             buf.resize(1, 0);
                             let res;
@@ -384,14 +385,16 @@ impl ETagRW for Client {
                             }
                             if res == 0 {
                                 let mut bv = BitVec::from_bytes(&buf);
-                                let mut start_items: Vec::<_> = start_group.into_iter().collect();
+                                let start_items: Vec::<_> = start_group.into_iter().collect();
                                 for v in &start_items {
-                                    if let ETagValue::Bool(b) = v.3 {
-                                        bv.set((7 - v.2.bit) as usize, b);
+                                    let index = addrs.iter().position(|r| r == *v).unwrap();
+                                    if let ETagValue::Bool(b) = tags[index].1 {
+                                        bv.set((7 - v.bit) as usize, b);
                                     }
                                 }
-                                for v in start_items.iter_mut() {
-                                    *v.1[0] = bv.to_bytes()[0];
+                                for v in &start_items {
+                                    let index = addrs.iter().position(|r| r == *v).unwrap();
+                                    items[index].1[0] = bv.to_bytes()[0];
                                 }
                             } else {
                                 return Err(String::from(error_text(res)))

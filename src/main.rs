@@ -134,6 +134,38 @@ fn main() {
     info!("{:#?}", client.read_tag(&tag_for_read).unwrap());
 
     let tags = vec![
+        (ETag {
+            name: String::from("test"),
+            address: String::from("DB2W0"),
+            datatype: ETagtype::INT,
+        },ETagValue::Int(500)),
+        (ETag {
+            name: String::from("test"),
+            address: String::from("DB2W2"),
+            datatype: ETagtype::INT,
+        }, ETagValue::Int(670)),
+        (ETag {
+            name: String::from("test"),
+            address: String::from("DB2D4"),
+            datatype: ETagtype::REAL,
+        },ETagValue::Real(56.07)),
+        (ETag {
+            name: String::from("test"),
+            address: String::from("DB2X9.1"),
+            datatype: ETagtype::BOOL,
+        },ETagValue::Bool(true)),
+        (ETag {
+            name: String::from("test"),
+            address: String::from("DB2X9.2"),
+            datatype: ETagtype::BOOL,
+        },ETagValue::Bool(true)),
+
+    ];
+
+    client.write_list(&tags);
+
+
+    let tags = vec![
         ETag {
             name: String::from("test"),
             address: String::from("DB2W0"),
