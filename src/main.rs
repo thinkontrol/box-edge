@@ -5,10 +5,10 @@ extern crate chrono;
 extern crate clap;
 extern crate env_logger;
 extern crate futures;
+extern crate itertools;
 extern crate log;
 extern crate regex;
 extern crate snap7_sys;
-extern crate itertools;
 
 use chrono::Local;
 use env_logger::Builder;
@@ -188,7 +188,7 @@ fn main() {
             name: String::from("test"),
             address: String::from("DB2X9.7"),
             datatype: ETagtype::BOOL,
-        }
+        },
     ];
 
     let results = client.read_list(&tags).unwrap();
@@ -196,58 +196,138 @@ fn main() {
         info!("{:#?}", r.unwrap())
     }
 
-
     let tags = vec![
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2X9.7"),
-            datatype: ETagtype::BOOL,
-        },ETagValue::Bool(false)),
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2W0"),
-            datatype: ETagtype::INT,
-        },ETagValue::Int(350)),
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2X9.0"),
-            datatype: ETagtype::BOOL,
-        },ETagValue::Bool(true)),
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2X9.4"),
-            datatype: ETagtype::BOOL,
-        },ETagValue::Bool(true)),
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2X9.5"),
-            datatype: ETagtype::BOOL,
-        },ETagValue::Bool(true)),
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2W2"),
-            datatype: ETagtype::INT,
-        }, ETagValue::Int(670)),
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2D4"),
-            datatype: ETagtype::REAL,
-        },ETagValue::Real(56.07)),
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2X9.1"),
-            datatype: ETagtype::BOOL,
-        },ETagValue::Bool(false)),
-        (ETag {
-            name: String::from("test"),
-            address: String::from("DB2X9.2"),
-            datatype: ETagtype::BOOL,
-        },ETagValue::Bool(false)),
-
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2X9.7"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(true),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2W0"),
+                datatype: ETagtype::INT,
+            },
+            ETagValue::Int(546),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2X9.0"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(false),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2X9.4"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(false),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2X9.5"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(false),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2W2"),
+                datatype: ETagtype::INT,
+            },
+            ETagValue::Int(854),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2D4"),
+                datatype: ETagtype::REAL,
+            },
+            ETagValue::Real(856.32),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2X9.1"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(true),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("DB2X9.2"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(true),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("MW100"),
+                datatype: ETagtype::INT,
+            },
+            ETagValue::Int(3405),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("MD102"),
+                datatype: ETagtype::DINT,
+            },
+            ETagValue::Int(96646598),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("MD106"),
+                datatype: ETagtype::REAL,
+            },
+            ETagValue::Real(0.002),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("MX10.5"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(true),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("MX10.2"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(true),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("IX0.0"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(false),
+        ),
+        (
+            ETag {
+                name: String::from("test"),
+                address: String::from("QX0.0"),
+                datatype: ETagtype::BOOL,
+            },
+            ETagValue::Bool(false),
+        ),
     ];
 
     client.write_list(&tags);
-
 
     let tags = vec![
         ETag {
@@ -304,14 +384,52 @@ fn main() {
             name: String::from("test"),
             address: String::from("DB2X9.7"),
             datatype: ETagtype::BOOL,
-        }
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("MW100"),
+            datatype: ETagtype::INT,
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("MD102"),
+            datatype: ETagtype::DINT,
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("MD106"),
+            datatype: ETagtype::REAL,
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("MX10.5"),
+            datatype: ETagtype::BOOL,
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("MX10.2"),
+            datatype: ETagtype::BOOL,
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("IX0.0"),
+            datatype: ETagtype::BOOL,
+        },
+        ETag {
+            name: String::from("test"),
+            address: String::from("QX0.0"),
+            datatype: ETagtype::BOOL,
+        },
     ];
 
-    let results = client.read_list(&tags).unwrap();
-    for r in results {
-        info!("{:#?}", r.unwrap())
-    }
-
+    match client.read_list(&tags) {
+        Ok(results) => {
+            for r in results {
+                info!("{:#?}", r.unwrap())
+            }
+        }
+        Err(err) => info!("{:#?}", err),
+    };
 
     // loop {
     //     info!("{:#?}", client.read(2, 0, 20));

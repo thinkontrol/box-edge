@@ -1,13 +1,13 @@
 use super::{ETag, ETagRW, ETagValue, ETagtype};
 use bit_vec::BitVec;
+use itertools::Itertools;
 use log::{error, info, warn, LevelFilter};
 use regex::Regex;
 use snap7_sys::*;
+use std::cmp::Ordering;
 use std::convert::TryInto;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
-use itertools::Itertools;
-use std::cmp::Ordering;
 
 #[derive(Debug)]
 pub struct Client {
@@ -64,7 +64,7 @@ pub struct S7Address {
 
 // impl PartialEq for S7Address {
 //     fn eq(&self, other: &Self) -> bool {
-//         self.area == other.area && 
+//         self.area == other.area &&
 //         self.dbnb == other.dbnb &&
 //         self.bit == other.bit
 //     }
@@ -76,7 +76,7 @@ impl Client {
             handle: unsafe { Cli_Create() },
             req_len: 0,
             neg_len: 0,
-            reg: Regex::new(r"^(M|(?:DB(\d+)))(W|D|X)(\d+)(?:\.([0-7]))?$").unwrap(),
+            reg: Regex::new(r"^(M|I|Q|(?:DB(\d+)))(W|D|X)(\d+)(?:\.([0-7]))?$").unwrap(),
         }
     }
 
@@ -131,8 +131,8 @@ impl Client {
         &self,
         write: ETagValue,
         addr: &S7Address,
-        prefetch_bool_byte: bool
-    ) -> Result<Vec::<u8>, String> {
+        prefetch_bool_byte: bool,
+    ) -> Result<Vec<u8>, String> {
         match addr.datatype {
             ETagtype::INT => {
                 if let ETagValue::Int(v) = write {
@@ -235,8 +235,8 @@ impl Client {
         }
     }
 
-    fn get_s7data_item(&self, addr: &S7Address, buf: &mut Vec::<u8>) -> TS7DataItem {
-        TS7DataItem{
+    fn get_s7data_item(&self, addr: &S7Address, buf: &mut Vec<u8>) -> TS7DataItem {
+        TS7DataItem {
             Area: addr.area as c_int,
             WordLen: S7WL::S7WLByte as c_int,
             Result: 0 as c_int,
@@ -286,42 +286,46 @@ impl ETagRW for Client {
             Err(err) => Err(err),
         }
     }
-    fn read_list(&self, tags: &Vec::<ETag>) -> Result<Vec::<Result<ETagValue, String>>, String> {
-        let addrs:Vec::<_> = tags.iter().map(|tag| self.conv_address(tag.address.as_str(), tag.datatype)).collect();
+    fn read_list(&self, tags: &Vec<ETag>) -> Result<Vec<Result<ETagValue, String>>, String> {
+        let addrs: Vec<_> = tags
+            .iter()
+            .map(|tag| self.conv_address(tag.address.as_str(), tag.datatype))
+            .collect();
         if addrs.iter().any(|addr| addr.is_err()) {
             Err(String::from("Address error"))
         } else {
-            let items: Vec::<_> = addrs.iter().map(|addr| {
-                let addr_ = addr.as_ref().unwrap();
-                let mut buf = Vec::<u8>::new();
-                buf.resize(addr_.size as usize, 0);
-                (self.get_s7data_item(addr_, &mut buf), buf, addr_)
-            }).collect();
-            let mut ts7_items: Vec::<TS7DataItem> = items.iter().map(|t| t.0).collect();
+            let items: Vec<_> = addrs
+                .iter()
+                .map(|addr| {
+                    let addr_ = addr.as_ref().unwrap();
+                    let mut buf = Vec::<u8>::new();
+                    buf.resize(addr_.size as usize, 0);
+                    (self.get_s7data_item(addr_, &mut buf), buf, addr_)
+                })
+                .collect();
+            let mut ts7_items: Vec<TS7DataItem> = items.iter().map(|t| t.0).collect();
             let res;
-                unsafe {
-                    res = Cli_ReadMultiVars(
-                        self.handle,
-                        &mut ts7_items[0],
-                        ts7_items.len() as c_int,
-                    ) as i32;
-                }
-                if res == 0 {
-                    let results: Vec::<_> = items.iter().map(|t| {
+            unsafe {
+                res = Cli_ReadMultiVars(self.handle, &mut ts7_items[0], ts7_items.len() as c_int)
+                    as i32;
+            }
+            if res == 0 {
+                let results: Vec<_> = items
+                    .iter()
+                    .map(|t| {
                         let p = t.0;
                         if p.Result == 0 {
                             self.conv_value(&t.1, &t.2.datatype, t.2.bit)
                         } else {
                             Err(String::from(error_text(res)))
                         }
-                    }).collect();
-                    Ok(results)
-                } else {
-                    Err(String::from(error_text(res)))
-                }
-            
+                    })
+                    .collect();
+                Ok(results)
+            } else {
+                Err(String::from(error_text(res)))
+            }
         }
-        
     }
     fn write_tag(&self, tag: &ETag, write: ETagValue) -> Result<bool, String> {
         match self.conv_address(tag.address.as_str(), tag.datatype) {
@@ -351,79 +355,104 @@ impl ETagRW for Client {
             Err(err) => Err(err),
         }
     }
-    fn write_list(&self, tags: &Vec::<(ETag, ETagValue)>) -> Result<Vec::<Result<bool, String>>, String> {
-        let addrs: Vec::<_> = tags.iter().map(|t| self.conv_address(t.0.address.as_str(), t.0.datatype)).collect();
+    fn write_list(
+        &self,
+        tags: &Vec<(ETag, ETagValue)>,
+    ) -> Result<Vec<Result<bool, String>>, String> {
+        let addrs: Vec<_> = tags
+            .iter()
+            .map(|t| self.conv_address(t.0.address.as_str(), t.0.datatype))
+            .collect();
         if addrs.iter().any(|addr| addr.is_err()) {
             Err(String::from("Address error"))
         } else {
-            let addrs: Vec::<_> = tags.iter().map(|t| self.conv_address(t.0.address.as_str(), t.0.datatype).unwrap()).collect();
-            let mut items: Vec::<_> = addrs.iter().enumerate().map(|(i, addr)| {
-                let mut buf_ = Vec::<u8>::new();
-                buf_.resize(addr.size as usize, 0);
-                let mut buf = self.conv_buf(tags[i].1, addr, false).unwrap_or(buf_);
-                (self.get_s7data_item(addr, &mut buf), buf)
-            }).collect();
-            let addrs: Vec::<_> = tags.iter().map(|t| self.conv_address(t.0.address.as_str(), t.0.datatype).unwrap()).collect();
-            for (area_key, area_group) in &addrs.iter().filter(|addr| addr.datatype.is_bool())
+            let addrs: Vec<_> = tags
+                .iter()
+                .map(|t| {
+                    self.conv_address(t.0.address.as_str(), t.0.datatype)
+                        .unwrap()
+                })
+                .collect();
+            let mut items: Vec<_> = addrs
+                .iter()
+                .enumerate()
+                .map(|(i, addr)| {
+                    let mut buf_ = Vec::<u8>::new();
+                    buf_.resize(addr.size as usize, 0);
+                    let mut buf = self.conv_buf(tags[i].1, addr, false).unwrap_or(buf_);
+                    (self.get_s7data_item(addr, &mut buf), buf)
+                })
+                .collect();
+            let addrs: Vec<_> = tags
+                .iter()
+                .map(|t| {
+                    self.conv_address(t.0.address.as_str(), t.0.datatype)
+                        .unwrap()
+                })
+                .collect();
+            for (area_key, area_group) in &addrs
+                .iter()
+                .filter(|addr| addr.datatype.is_bool())
                 .sorted_by(|a, b| Ord::cmp(a, b))
-                .group_by(|t| t.area) {
-                    for (dbnb_key, dbnb_group) in &area_group.into_iter().group_by(|t| t.dbnb) {
-                        for (start_key, start_group) in &dbnb_group.into_iter().group_by(|t| t.start) {
-                            let mut buf = Vec::<u8>::new();
-                            buf.resize(1, 0);
-                            let res;
-                            unsafe {
-                                res = Cli_ReadArea(
-                                    self.handle,
-                                    area_key as c_int,
-                                    dbnb_key as c_int,
-                                    start_key as c_int,
-                                    1 as c_int,
-                                    S7WL::S7WLByte as c_int,
-                                    buf.as_mut_ptr() as *mut c_void,
-                                ) as i32;
-                            }
-                            if res == 0 {
-                                let mut bv = BitVec::from_bytes(&buf);
-                                let start_items: Vec::<_> = start_group.into_iter().collect();
-                                for v in &start_items {
-                                    let index = addrs.iter().position(|r| r == *v).unwrap();
-                                    if let ETagValue::Bool(b) = tags[index].1 {
-                                        bv.set((7 - v.bit) as usize, b);
-                                    }
+                .group_by(|t| t.area)
+            {
+                for (dbnb_key, dbnb_group) in &area_group.into_iter().group_by(|t| t.dbnb) {
+                    for (start_key, start_group) in &dbnb_group.into_iter().group_by(|t| t.start) {
+                        let mut buf = Vec::<u8>::new();
+                        buf.resize(1, 0);
+                        let res;
+                        unsafe {
+                            res = Cli_ReadArea(
+                                self.handle,
+                                area_key as c_int,
+                                dbnb_key as c_int,
+                                start_key as c_int,
+                                1 as c_int,
+                                S7WL::S7WLByte as c_int,
+                                buf.as_mut_ptr() as *mut c_void,
+                            ) as i32;
+                        }
+                        if res == 0 {
+                            let mut bv = BitVec::from_bytes(&buf);
+                            let start_items: Vec<_> = start_group.into_iter().collect();
+                            for v in &start_items {
+                                let index = addrs.iter().position(|r| r == *v).unwrap();
+                                if let ETagValue::Bool(b) = tags[index].1 {
+                                    bv.set((7 - v.bit) as usize, b);
                                 }
-                                for v in &start_items {
-                                    let index = addrs.iter().position(|r| r == *v).unwrap();
-                                    items[index].1[0] = bv.to_bytes()[0];
-                                }
-                            } else {
-                                return Err(String::from(error_text(res)))
                             }
+                            for v in &start_items {
+                                let index = addrs.iter().position(|r| r == *v).unwrap();
+                                items[index].1[0] = bv.to_bytes()[0];
+                            }
+                        } else {
+                            return Err(String::from(error_text(res)));
                         }
                     }
                 }
-            let mut ts7_items: Vec::<TS7DataItem> = items.iter().map(|t| t.0).collect();
+            }
+            let mut ts7_items: Vec<TS7DataItem> = items.iter().map(|t| t.0).collect();
             let res;
-                unsafe {
-                    res = Cli_WriteMultiVars(
-                        self.handle,
-                        &mut ts7_items[0],
-                        ts7_items.len() as c_int,
-                    ) as i32;
-                }
-                if res == 0 {
-                    let results: Vec::<_> = items.iter().map(|t| {
+            unsafe {
+                res = Cli_WriteMultiVars(self.handle, &mut ts7_items[0], ts7_items.len() as c_int)
+                    as i32;
+            }
+            if res == 0 {
+                let results: Vec<_> = items
+                    .iter()
+                    .map(|t| {
                         let p = t.0;
                         if p.Result == 0 {
                             Ok(true)
                         } else {
                             Err(String::from(error_text(res)))
                         }
-                    }).collect();
-                    Ok(results)
-                } else {
-                    Err(String::from(error_text(res)))
-                }
+                    })
+                    .collect();
+                Ok(results)
+            } else {
+                Err(String::from(error_text(res)))
+            }
         }
     }
 }
