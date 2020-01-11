@@ -9,6 +9,7 @@ extern crate itertools;
 extern crate log;
 extern crate regex;
 extern crate snap7_sys;
+extern crate url;
 
 use chrono::Local;
 use env_logger::Builder;
@@ -46,8 +47,11 @@ fn main() {
     info!("I am here");
 
     let mut client = Client::new();
+    info!("Connected: {}", client.connected());
 
     client.connect("10.0.0.230", 0, 1);
+
+    info!("Connected: {}", client.connected());
 
     warn!("{:#?}", client);
 
@@ -431,6 +435,9 @@ fn main() {
         Err(err) => info!("{:#?}", err),
     };
 
+    info!("Connected: {}", client.connected());
+    client.close();
+    info!("Connected: {}", client.connected());
     // loop {
     //     info!("{:#?}", client.read(2, 0, 20));
     //     // if let Ok(result) = client.read(1, 0, 20) {

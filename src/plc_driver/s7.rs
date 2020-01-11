@@ -8,6 +8,7 @@ use std::cmp::Ordering;
 use std::convert::TryInto;
 use std::ffi::CString;
 use std::os::raw::{c_char, c_int, c_void};
+use url::Url;
 
 #[derive(Debug)]
 pub struct Client {
@@ -105,6 +106,16 @@ impl Client {
         unsafe {
             Cli_Disconnect(self.handle);
         }
+    }
+
+    pub fn connected(&mut self) -> bool {
+        let mut r: c_int = 0;
+        let res;
+        unsafe {
+            res = Cli_GetConnected(self.handle, &mut r) as i32;
+        }
+        info!("Connect Status: {}, {}", res, r);
+        res == 0 && r == 1
     }
 
     fn conv_value(&self, buf: &Vec<u8>, datatype: &ETagtype, bit: u8) -> Result<ETagValue, String> {

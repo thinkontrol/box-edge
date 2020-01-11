@@ -7,5 +7,6 @@ extern crate itertools;
 extern crate log;
 extern crate regex;
 extern crate snap7_sys;
+extern crate url;
 
 pub mod plc_driver;
