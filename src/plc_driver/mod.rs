@@ -14,13 +14,12 @@ impl ETagtype {
     pub fn is_bool(&self) -> bool {
         match self {
             ETagtype::BOOL => true,
-            _ => false
+            _ => false,
         }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-#[serde(untagged)]
 pub enum ETagValue {
     Bool(bool),
     Int(i64),
@@ -36,7 +35,10 @@ pub struct ETag {
 
 pub trait ETagRW {
     fn read_tag(&self, tag: &ETag) -> Result<ETagValue, String>;
-    fn read_list(&self, tags: &Vec::<ETag>) -> Result<Vec::<Result<ETagValue, String>>, String>;
+    fn read_list(&self, tags: &Vec<ETag>) -> Result<Vec<Result<ETagValue, String>>, String>;
     fn write_tag(&self, tag: &ETag, write: ETagValue) -> Result<bool, String>;
-    fn write_list(&self, tags: &Vec::<(ETag, ETagValue)>) -> Result<Vec::<Result<bool, String>>, String>;
+    fn write_list(
+        &self,
+        tags: &Vec<(ETag, ETagValue)>,
+    ) -> Result<Vec<Result<bool, String>>, String>;
 }
