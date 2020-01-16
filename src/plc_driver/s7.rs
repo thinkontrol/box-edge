@@ -81,10 +81,20 @@ impl Client {
         }
     }
 
+    // pub fn setTimeOut(&mut self, timeout: i32) {
+    //     unsafe {
+    //         Cli_SetParam(
+    //             self.handle,
+
+    //         );
+    //     }
+    // }
+
     pub fn connect(&mut self, host: &str, rack: i32, slot: i32) {
         let mut req: c_int = 0;
         let mut neg: c_int = 0;
-
+        let mut buf = Vec::<u8>::new();
+        buf.resize(4, 0);
         unsafe {
             Cli_ConnectTo(
                 self.handle,
@@ -99,6 +109,12 @@ impl Client {
             self.neg_len = neg as usize;
 
             info!("Get PDU: {}, {}", self.req_len, self.neg_len);
+
+            Cli_GetParam(self.handle, 5 as c_int, buf.as_mut_ptr() as *mut c_void);
+            info!(
+                "Ping timeout: {:#?}",
+                i32::from_le_bytes(buf[0..4].try_into().unwrap())
+            );
         }
     }
 
@@ -315,26 +331,58 @@ impl ETagRW for Client {
                 })
                 .collect();
             let mut ts7_items: Vec<TS7DataItem> = items.iter().map(|t| t.0).collect();
-            let res;
-            unsafe {
-                res = Cli_ReadMultiVars(self.handle, &mut ts7_items[0], ts7_items.len() as c_int)
-                    as i32;
-            }
-            if res == 0 {
-                let results: Vec<_> = items
-                    .iter()
-                    .map(|t| {
-                        let p = t.0;
-                        if p.Result == 0 {
-                            self.conv_value(&t.1, &t.2.datatype, t.2.bit)
-                        } else {
-                            Err(String::from(error_text(res)))
-                        }
-                    })
-                    .collect();
-                Ok(results)
-            } else {
-                Err(String::from(error_text(res)))
+            // let res;
+            // unsafe {
+            //     res = Cli_ReadMultiVars(self.handle, &mut ts7_items[0], ts7_items.len() as c_int)
+            //         as i32;
+            // }
+            // if res == 0 {
+            //     let results: Vec<_> = items
+            //         .iter()
+            //         .map(|t| {
+            //             let p = t.0;
+            //             if p.Result == 0 {
+            //                 self.conv_value(&t.1, &t.2.datatype, t.2.bit)
+            //             } else {
+            //                 Err(String::from(error_text(res)))
+            //             }
+            //         })
+            //         .collect();
+            //     Ok(results)
+            // } else {
+            //     Err(String::from(error_text(res)))
+            // }
+            let cli_results: Vec<_> = ts7_items
+                .chunks_mut(20)
+                .map(|chunk| {
+                    let res;
+                    unsafe {
+                        res = Cli_ReadMultiVars(self.handle, &mut chunk[0], chunk.len() as c_int)
+                            as i32;
+                    }
+                    if res == 0 {
+                        Ok(())
+                    } else {
+                        Err(res)
+                    }
+                })
+                .collect();
+            match cli_results.into_iter().find(|cli_r| cli_r.is_err()) {
+                Some(Err(res)) => Err(String::from(error_text(res))),
+                _ => {
+                    let results: Vec<_> = items
+                        .iter()
+                        .map(|t| {
+                            let p = t.0;
+                            if p.Result == 0 {
+                                self.conv_value(&t.1, &t.2.datatype, t.2.bit)
+                            } else {
+                                Err(String::from(error_text(p.Result)))
+                            }
+                        })
+                        .collect();
+                    Ok(results)
+                }
             }
         }
     }
@@ -443,26 +491,58 @@ impl ETagRW for Client {
                 }
             }
             let mut ts7_items: Vec<TS7DataItem> = items.iter().map(|t| t.0).collect();
-            let res;
-            unsafe {
-                res = Cli_WriteMultiVars(self.handle, &mut ts7_items[0], ts7_items.len() as c_int)
-                    as i32;
-            }
-            if res == 0 {
-                let results: Vec<_> = items
-                    .iter()
-                    .map(|t| {
-                        let p = t.0;
-                        if p.Result == 0 {
-                            Ok(true)
-                        } else {
-                            Err(String::from(error_text(res)))
-                        }
-                    })
-                    .collect();
-                Ok(results)
-            } else {
-                Err(String::from(error_text(res)))
+            // let res;
+            // unsafe {
+            //     res = Cli_WriteMultiVars(self.handle, &mut ts7_items[0], ts7_items.len() as c_int)
+            //         as i32;
+            // }
+            // if res == 0 {
+            //     let results: Vec<_> = items
+            //         .iter()
+            //         .map(|t| {
+            //             let p = t.0;
+            //             if p.Result == 0 {
+            //                 Ok(true)
+            //             } else {
+            //                 Err(String::from(error_text(res)))
+            //             }
+            //         })
+            //         .collect();
+            //     Ok(results)
+            // } else {
+            //     Err(String::from(error_text(res)))
+            // }
+            let cli_results: Vec<_> = ts7_items
+                .chunks_mut(20)
+                .map(|chunk| {
+                    let res;
+                    unsafe {
+                        res = Cli_WriteMultiVars(self.handle, &mut chunk[0], chunk.len() as c_int)
+                            as i32;
+                    }
+                    if res == 0 {
+                        Ok(())
+                    } else {
+                        Err(res)
+                    }
+                })
+                .collect();
+            match cli_results.into_iter().find(|cli_r| cli_r.is_err()) {
+                Some(Err(res)) => Err(String::from(error_text(res))),
+                _ => {
+                    let results: Vec<_> = items
+                        .iter()
+                        .map(|t| {
+                            let p = t.0;
+                            if p.Result == 0 {
+                                Ok(true)
+                            } else {
+                                Err(String::from(error_text(p.Result)))
+                            }
+                        })
+                        .collect();
+                    Ok(results)
+                }
             }
         }
     }
