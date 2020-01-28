@@ -45,32 +45,6 @@ pub struct S7Address {
     datatype: ETagtype,
 }
 
-// impl Ord for S7Address {
-//     fn cmp(&self, other: &Self) -> Ordering {
-//         if (self.area as i32) - (other.area as i32) > 0 {
-//             Ordering::Greater
-//         } else if (self.area as i32) - (other.area as i32) < 0 {
-//             Ordering::Less
-//         } else {
-//             Ordering::Equal
-//         }
-//     }
-// }
-
-// impl PartialOrd for S7Address {
-//     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-//         Some(self.cmp(other))
-//     }
-// }
-
-// impl PartialEq for S7Address {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.area == other.area &&
-//         self.dbnb == other.dbnb &&
-//         self.bit == other.bit
-//     }
-// }
-
 impl Client {
     pub fn new() -> Self {
         Self {
@@ -80,15 +54,6 @@ impl Client {
             reg: Regex::new(r"^(M|I|Q|(?:DB(\d+)))(W|D|X)(\d+)(?:\.([0-7]))?$").unwrap(),
         }
     }
-
-    // pub fn setTimeOut(&mut self, timeout: i32) {
-    //     unsafe {
-    //         Cli_SetParam(
-    //             self.handle,
-
-    //         );
-    //     }
-    // }
 
     pub fn connect(&mut self, host: &str, rack: i32, slot: i32) {
         let mut req: c_int = 0;
